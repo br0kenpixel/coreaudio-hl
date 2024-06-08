@@ -1,6 +1,5 @@
-use std::str::Utf8Error;
-
 use coreaudio_sys::OSStatus;
+use std::str::Utf8Error;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
