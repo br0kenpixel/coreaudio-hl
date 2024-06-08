@@ -4,7 +4,10 @@ use crate::{
     mscope::AudioDevPropScope,
     mselector::{AudioDevPropSelector, PropertySelector},
 };
-use coreaudio_sys::{AudioDeviceID, AudioObjectGetPropertyData, AudioObjectHasProperty, UInt32};
+use coreaudio_sys::{
+    AudioDeviceID, AudioObjectGetPropertyData, AudioObjectHasProperty, AudioObjectSetPropertyData,
+    UInt32,
+};
 use std::{
     ffi::c_void,
     mem::size_of,
@@ -31,6 +34,24 @@ pub fn get_property<T: Default + Sized>(
     }
 
     Ok(result_container)
+}
+
+pub fn set_property<T>(
+    device_id: AudioDeviceID,
+    property: AudioObjPropAddress,
+    value: &T,
+) -> Result<(), Error> {
+    let ptr = addr_of!(*value) as *mut c_void;
+    let data_size = size_of::<T>() as UInt32;
+
+    let status = unsafe {
+        AudioObjectSetPropertyData(device_id, &property.into(), 0, null(), data_size, ptr)
+    };
+
+    if status != 0 {
+        return Err(status.into());
+    }
+    Ok(())
 }
 
 pub fn has_property(device_id: AudioDeviceID, property: AudioObjPropAddress) -> bool {

@@ -8,6 +8,8 @@ pub enum Error {
     Raw(OSStatus),
     #[error("Failed to parse UTF-8 bytes: {0}")]
     Utf8Error(#[from] Utf8Error),
+    #[error("Invalid scalar volume value: {0} ")]
+    InvalidVolume(f32),
 }
 
 impl From<i32> for Error {

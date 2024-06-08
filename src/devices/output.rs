@@ -60,10 +60,56 @@ impl AudioOutputDevice {
         .map(|result| result == 1)
     }
 
+    /*** --- Device property setters --- ***/
+
+    pub fn set_mute(&self, mute: bool) -> Result<(), Error> {
+        let mut address =
+            AudioObjPropAddress::new(PropertySelector::DEV_MUTE, AudioDevPropScope::Output);
+        let mute = mute as u32;
+
+        for channel in self.valid_channels.iter() {
+            address.set_element(*channel);
+
+            if self.set_property(address, &mute).is_err() {
+                // try the master channel
+                address.set_element(0);
+                return self.set_property(address, &mute);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn set_volume(&self, vol: f32) -> Result<(), Error> {
+        if !(0.00..1.0).contains(&vol) {
+            return Err(Error::InvalidVolume(vol));
+        }
+
+        let mut address = AudioObjPropAddress::new(
+            PropertySelector::DEV_VOLUME_SCALAR,
+            AudioDevPropScope::Output,
+        );
+
+        for channel in self.channels().iter() {
+            address.set_element(*channel);
+            self.set_property(address, &vol)?;
+        }
+
+        Ok(())
+    }
+
     /*** --- Utils --- ***/
 
     pub fn get_property<T: Default + Sized>(&self, prop: AudioObjPropAddress) -> Result<T, Error> {
         internals::get_property(self.device_id, prop)
+    }
+
+    pub fn set_property<T: Default + Sized>(
+        &self,
+        prop: AudioObjPropAddress,
+        value: &T,
+    ) -> Result<(), Error> {
+        internals::set_property(self.device_id, prop, value)
     }
 
     pub fn is_default(&self) -> Result<bool, Error> {
