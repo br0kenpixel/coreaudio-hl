@@ -33,24 +33,24 @@ Features:
 
 Example:
 ```rust
-use coreaudio_hl::devices::AudioOutputDevice;
+use coreaudio_hl::devices::AudioDevice;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let output = AudioOutputDevice::get_default()?;
-    let name = output.name(); // name is already stored internally
-    let mute = output.muted()?; // calls AudioObjectGetPropertyData(), which could fail
+    let device = AudioDevice::default_output()?;
+    let name = device.name();
+    let mute = device.muted()?;
 
     println!("Name: {name}");
     println!("Muted? {mute}");
 
-    for channel in output.channels() {
-        let volume = output.volume_for_channel(*channel)?;
+    for channel in device.output_channels() {
+        let volume = device.volume_for_channel(*channel)?;
 
         println!("Volume on channel #{channel}: {:.02}%", volume);
     }
 
-    println!("Volume: {:.02}%", output.avg_volume()?);
+    println!("Volume: {:.02}%", device.avg_volume()?);
 
     Ok(())
 }
@@ -65,22 +65,22 @@ Volume: 0.37%
 Or, you can get an arbitrary property:
 ```rust
 fn main() -> Result<(), Box<dyn Error>> {
-    let output = AudioOutputDevice::get_default()?;
-
-    let mut address = AudioObjPropAddress::new(
+    let device = AudioDevice::default_output()?;
+    let mut _address = AudioObjPropAddress::new(
         PropertySelector::DEV_VOLUME_SCALAR,
-        AudioDevPropScope::Output,
+        PropertyScope::DEV_OUTPUT,
     );
+
     // or...
     let mut address = AudioObjPropAddress::new(
         PropertySelector::Device(AudioDevPropSelector::VolumeScalar),
-        AudioDevPropScope::Output,
+        PropertyScope::DEV_OUTPUT,
     );
 
-    for channel in output.channels() {
+    for channel in device.output_channels() {
         address.set_element(*channel);
 
-        let volume = output.get_property::<f32>(address)?;
+        let volume = device.get_property::<String>(address)?;
         println!("Volume on channel #{channel}: {:.02}%", volume);
     }
 
