@@ -70,7 +70,7 @@ impl AudioOutputDevice {
         Ok(Self::default_device_id()? == self.device_id)
     }
 
-    pub fn has_propery(&self, prop: AudioObjPropAddress) -> bool {
+    pub fn has_property(&self, prop: AudioObjPropAddress) -> bool {
         internals::has_property(self.device_id, prop)
     }
 
