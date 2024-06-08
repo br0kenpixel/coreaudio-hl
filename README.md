@@ -31,7 +31,7 @@ Features:
     - [ ] Volume change
     - [ ] Default input/output device change
 
-Exmple:
+Example:
 ```rust
 use coreaudio_hl::devices::AudioOutputDevice;
 use std::error::Error;
