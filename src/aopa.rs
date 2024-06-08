@@ -1,21 +1,21 @@
-use crate::{mscope::AudioDevPropScope, mselector::PropertySelector};
+use crate::{mscope::PropertyScope, mselector::PropertySelector};
 use coreaudio_sys::AudioObjectPropertyAddress;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AudioObjPropAddress {
     select: PropertySelector,
-    scope: AudioDevPropScope,
+    scope: PropertyScope,
     element: u32,
 }
 
 impl AudioObjPropAddress {
-    pub fn new(select: PropertySelector, scope: AudioDevPropScope) -> Self {
+    pub fn new(select: PropertySelector, scope: PropertyScope) -> Self {
         Self::new_with_element(select, scope, 0)
     }
 
     pub const fn new_with_element(
         select: PropertySelector,
-        scope: AudioDevPropScope,
+        scope: PropertyScope,
         element: u32,
     ) -> Self {
         Self {
@@ -29,7 +29,7 @@ impl AudioObjPropAddress {
         self.select
     }
 
-    pub const fn scope(&self) -> AudioDevPropScope {
+    pub const fn scope(&self) -> PropertyScope {
         self.scope
     }
 

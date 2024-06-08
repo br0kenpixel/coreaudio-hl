@@ -1,5 +1,5 @@
-use coreaudio_sys::OSStatus;
-use std::str::Utf8Error;
+use coreaudio_sys::{AudioDeviceID, OSStatus};
+use std::{num::TryFromIntError, str::Utf8Error};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -10,6 +10,14 @@ pub enum Error {
     Utf8Error(#[from] Utf8Error),
     #[error("Invalid scalar volume value: {0} ")]
     InvalidVolume(f32),
+    #[error("Failed to convert integer values: {0}")]
+    IntConversion(#[from] TryFromIntError),
+    #[error("Unexpected parameter")]
+    UnexpectedParam,
+    #[error("Device ID links to an input device")]
+    NotOutput,
+    #[error("Unable to determine device type of device {0}")]
+    UnknownDeviceType(AudioDeviceID),
 }
 
 impl From<i32> for Error {

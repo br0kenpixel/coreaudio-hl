@@ -2,7 +2,7 @@ use crate::{
     aopa::AudioObjPropAddress,
     error::Error,
     internals,
-    mscope::AudioDevPropScope,
+    mscope::PropertyScope,
     mselector::{AudioHwPropSelector, PropertySelector},
 };
 use coreaudio_sys::{kAudioObjectSystemObject, AudioDeviceID};
@@ -16,8 +16,13 @@ pub struct AudioOutputDevice {
 
 impl AudioOutputDevice {
     pub fn with_id(id: AudioDeviceID) -> Result<Self, Error> {
-        let valid_channels = internals::get_valid_channels(id, AudioDevPropScope::Output);
-        let name = internals::get_device_name(id, AudioDevPropScope::Output)?;
+        // Check if the device has output streams
+        if internals::get_streams(id, PropertyScope::DEV_OUTPUT)? < 1 {
+            return Err(Error::NotOutput);
+        }
+
+        let valid_channels = internals::get_valid_channels(id, PropertyScope::DEV_OUTPUT);
+        let name = internals::get_device_name(id, PropertyScope::DEV_OUTPUT)?;
 
         Ok(Self {
             device_id: id,
@@ -47,7 +52,7 @@ impl AudioOutputDevice {
     pub fn volume_for_channel(&self, ch: u32) -> Result<f32, Error> {
         self.get_property(AudioObjPropAddress::new_with_element(
             PropertySelector::DEV_VOLUME_SCALAR,
-            AudioDevPropScope::Output,
+            PropertyScope::DEV_OUTPUT,
             ch,
         ))
     }
@@ -55,7 +60,7 @@ impl AudioOutputDevice {
     pub fn muted(&self) -> Result<bool, Error> {
         self.get_property::<i32>(AudioObjPropAddress::new(
             PropertySelector::DEV_MUTE,
-            AudioDevPropScope::Output,
+            PropertyScope::DEV_OUTPUT,
         ))
         .map(|result| result == 1)
     }
@@ -64,7 +69,7 @@ impl AudioOutputDevice {
 
     pub fn set_mute(&self, mute: bool) -> Result<(), Error> {
         let mut address =
-            AudioObjPropAddress::new(PropertySelector::DEV_MUTE, AudioDevPropScope::Output);
+            AudioObjPropAddress::new(PropertySelector::DEV_MUTE, PropertyScope::DEV_OUTPUT);
         let mute = mute as u32;
 
         for channel in self.valid_channels.iter() {
@@ -87,7 +92,7 @@ impl AudioOutputDevice {
 
         let mut address = AudioObjPropAddress::new(
             PropertySelector::DEV_VOLUME_SCALAR,
-            AudioDevPropScope::Output,
+            PropertyScope::DEV_OUTPUT,
         );
 
         for channel in self.channels().iter() {
@@ -137,7 +142,7 @@ impl AudioOutputDevice {
             kAudioObjectSystemObject,
             AudioObjPropAddress::new(
                 PropertySelector::Hardware(AudioHwPropSelector::DefaultOutputDevice),
-                AudioDevPropScope::Output,
+                PropertyScope::DEV_OUTPUT,
             ),
         )
     }

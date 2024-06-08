@@ -1,29 +1,30 @@
 use crate::{
     aopa::AudioObjPropAddress,
     error::Error,
-    mscope::AudioDevPropScope,
+    mscope::PropertyScope,
     mselector::{AudioDevPropSelector, PropertySelector},
 };
 use coreaudio_sys::{
-    AudioDeviceID, AudioObjectGetPropertyData, AudioObjectHasProperty, AudioObjectSetPropertyData,
-    UInt32,
+    AudioDeviceID, AudioObjectGetPropertyData, AudioObjectGetPropertyDataSize,
+    AudioObjectHasProperty, AudioObjectSetPropertyData, AudioStreamID, UInt32,
 };
 use std::{
     ffi::c_void,
     mem::size_of,
-    ptr::{addr_of, null},
+    ptr::{self, addr_of, null},
 };
 
 const CHANNEL_CHECK_FAILS: usize = 3;
 const DEVICE_NAME_LEN: usize = 256;
 
-pub fn get_property<T: Default + Sized>(
+pub fn get_property_complex<T>(
     device_id: AudioDeviceID,
     property: AudioObjPropAddress,
-) -> Result<T, Error> {
-    let result_container = T::default();
-    let ptr = addr_of!(result_container) as *mut c_void;
-    let mut data_size = size_of::<T>() as UInt32;
+    data_ptr: *mut T,
+    data_size: usize,
+) -> Result<(), Error> {
+    let ptr = data_ptr.cast::<c_void>();
+    let mut data_size = u32::try_from(data_size)?;
 
     let status = unsafe {
         AudioObjectGetPropertyData(device_id, &property.into(), 0, null(), &mut data_size, ptr)
@@ -33,7 +34,20 @@ pub fn get_property<T: Default + Sized>(
         return Err(status.into());
     }
 
-    Ok(result_container)
+    Ok(())
+}
+
+pub fn get_property<T: Default + Sized>(
+    device_id: AudioDeviceID,
+    property: AudioObjPropAddress,
+) -> Result<T, Error> {
+    let mut data = T::default();
+    let data_ptr = ptr::from_mut(&mut data);
+    let data_size = size_of::<T>();
+
+    get_property_complex(device_id, property, data_ptr, data_size)?;
+
+    Ok(data)
 }
 
 pub fn set_property<T>(
@@ -59,7 +73,7 @@ pub fn has_property(device_id: AudioDeviceID, property: AudioObjPropAddress) -> 
     ret != 0
 }
 
-pub fn get_valid_channels(id: AudioDeviceID, scope: AudioDevPropScope) -> Vec<u32> {
+pub fn get_valid_channels(id: AudioDeviceID, scope: PropertyScope) -> Vec<u32> {
     let mut result = Vec::new();
     let mut address = AudioObjPropAddress::new(
         PropertySelector::Device(AudioDevPropSelector::VolumeScalar),
@@ -79,7 +93,23 @@ pub fn get_valid_channels(id: AudioDeviceID, scope: AudioDevPropScope) -> Vec<u3
     result
 }
 
-pub fn get_device_name(id: AudioDeviceID, scope: AudioDevPropScope) -> Result<String, Error> {
+pub fn get_property_data_size(
+    id: AudioDeviceID,
+    address: AudioObjPropAddress,
+) -> Result<usize, Error> {
+    let mut size = 0u32;
+
+    let status =
+        unsafe { AudioObjectGetPropertyDataSize(id, &address.into(), 0, null(), &mut size) };
+
+    if status != 0 {
+        return Err(status.into());
+    }
+
+    Ok(usize::try_from(size)?)
+}
+
+pub fn get_device_name(id: AudioDeviceID, scope: PropertyScope) -> Result<String, Error> {
     let address = AudioObjPropAddress::new(PropertySelector::DEV_NAME, scope);
     let mut name_buf = [0u8; DEVICE_NAME_LEN];
     let ptr = name_buf.as_mut_ptr().cast::<c_void>();
@@ -95,4 +125,17 @@ pub fn get_device_name(id: AudioDeviceID, scope: AudioDevPropScope) -> Result<St
     let name = std::str::from_utf8(&name_buf)?;
 
     Ok(name.into())
+}
+
+pub fn get_streams(id: AudioDeviceID, scope: PropertyScope) -> Result<u32, Error> {
+    if !matches!(scope, PropertyScope::DEV_INPUT | PropertyScope::DEV_OUTPUT) {
+        return Err(Error::UnexpectedParam);
+    }
+
+    let address = AudioObjPropAddress::new(PropertySelector::DEV_STREAMS, scope);
+
+    let stream_count_bytes: usize = get_property::<u32>(id, address)?.try_into()?;
+    let stream_count = stream_count_bytes / size_of::<AudioStreamID>();
+
+    Ok(stream_count.try_into()?)
 }
