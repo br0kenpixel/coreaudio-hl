@@ -1,45 +1,17 @@
+use super::AudioDevice;
 use crate::{
-    aopa::AudioObjPropAddress,
-    error::Error,
-    internals,
-    mscope::PropertyScope,
-    mselector::{AudioHwPropSelector, PropertySelector},
+    aopa::AudioObjPropAddress, error::Error, internals, mscope::PropertyScope,
+    mselector::PropertySelector,
 };
-use coreaudio_sys::{kAudioObjectSystemObject, AudioDeviceID};
+use std::ops::Deref;
 
 #[derive(Debug)]
-pub struct AudioOutputDevice {
-    device_id: AudioDeviceID,
-    valid_channels: Box<[u32]>,
-    name: Box<str>,
-}
+pub struct AudioOutputDevice(pub(crate) AudioDevice);
 
 impl AudioOutputDevice {
-    pub fn with_id(id: AudioDeviceID) -> Result<Self, Error> {
-        // Check if the device has output streams
-        if internals::get_streams(id, PropertyScope::DEV_OUTPUT)? < 1 {
-            return Err(Error::NotOutput);
-        }
-
-        let valid_channels = internals::get_valid_channels(id, PropertyScope::DEV_OUTPUT);
-        let name = internals::get_device_name(id, PropertyScope::DEV_OUTPUT)?;
-
-        Ok(Self {
-            device_id: id,
-            valid_channels: valid_channels.into(),
-            name: name.into(),
-        })
-    }
-
-    pub fn get_default() -> Result<Self, Error> {
-        Self::with_id(Self::default_device_id()?)
-    }
-
-    /*** --- Device property getters --- ***/
-
     pub fn avg_volume(&self) -> Result<f32, Error> {
         let volumes = self
-            .valid_channels
+            .output_channels()
             .iter()
             .map(|ch| self.volume_for_channel(*ch))
             .collect::<Result<Vec<_>, Error>>()?;
@@ -65,14 +37,12 @@ impl AudioOutputDevice {
         .map(|result| result == 1)
     }
 
-    /*** --- Device property setters --- ***/
-
     pub fn set_mute(&self, mute: bool) -> Result<(), Error> {
         let mut address =
             AudioObjPropAddress::new(PropertySelector::DEV_MUTE, PropertyScope::DEV_OUTPUT);
         let mute = mute as u32;
 
-        for channel in self.valid_channels.iter() {
+        for channel in self.output_channels().iter() {
             address.set_element(*channel);
 
             if self.set_property(address, &mute).is_err() {
@@ -95,12 +65,16 @@ impl AudioOutputDevice {
             PropertyScope::DEV_OUTPUT,
         );
 
-        for channel in self.channels().iter() {
+        for channel in self.output_channels().iter() {
             address.set_element(*channel);
             self.set_property(address, &vol)?;
         }
 
         Ok(())
+    }
+
+    pub fn downgrade(self) -> AudioDevice {
+        self.0
     }
 
     /*** --- Utils --- ***/
@@ -118,38 +92,18 @@ impl AudioOutputDevice {
     }
 
     pub fn is_default(&self) -> Result<bool, Error> {
-        Ok(Self::default_device_id()? == self.device_id)
+        Ok(AudioDevice::default_output_device_id()? == self.device_id)
     }
 
     pub fn has_property(&self, prop: AudioObjPropAddress) -> bool {
         internals::has_property(self.device_id, prop)
     }
-
-    /*** --- Struct getters --- ***/
-
-    pub fn channels(&self) -> &[u32] {
-        &self.valid_channels
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /*** --- Private --- ***/
-
-    fn default_device_id() -> Result<AudioDeviceID, Error> {
-        internals::get_property(
-            kAudioObjectSystemObject,
-            AudioObjPropAddress::new(
-                PropertySelector::Hardware(AudioHwPropSelector::DefaultOutputDevice),
-                PropertyScope::DEV_OUTPUT,
-            ),
-        )
-    }
 }
 
-impl Default for AudioOutputDevice {
-    fn default() -> Self {
-        Self::get_default().unwrap()
+impl Deref for AudioOutputDevice {
+    type Target = AudioDevice;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }

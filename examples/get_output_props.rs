@@ -1,21 +1,21 @@
-use coreaudio_hl::devices::AudioOutputDevice;
+use coreaudio_hl::devices::AudioDevice;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let output = AudioOutputDevice::get_default()?;
-    let name = output.name();
-    let mute = output.muted()?;
+    let device = AudioDevice::default_output()?;
+    let name = device.name();
+    let mute = device.muted()?;
 
     println!("Name: {name}");
     println!("Muted? {mute}");
 
-    for channel in output.channels() {
-        let volume = output.volume_for_channel(*channel)?;
+    for channel in device.output_channels() {
+        let volume = device.volume_for_channel(*channel)?;
 
         println!("Volume on channel #{channel}: {:.02}%", volume);
     }
 
-    println!("Volume: {:.02}%", output.avg_volume()?);
+    println!("Volume: {:.02}%", device.avg_volume()?);
 
     Ok(())
 }
