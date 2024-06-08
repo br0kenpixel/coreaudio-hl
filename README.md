@@ -55,6 +55,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 ```
+```
+Name: WH-XB910N
+Muted? false
+Volume on channel #1: 0.37%
+Volume on channel #2: 0.37%
+Volume: 0.37%
+```
 Or, you can get an arbitrary property:
 ```rust
 fn main() -> Result<(), Box<dyn Error>> {
