@@ -6,6 +6,7 @@ use crate::{
     mselector::PropertySelector,
 };
 use coreaudio_sys::{kAudioObjectSystemObject, AudioDeviceID};
+use input::AudioInputDevice;
 pub use output::AudioOutputDevice;
 use std::mem::size_of;
 
@@ -40,8 +41,10 @@ impl AudioDevice {
         })
     }
 
-    pub fn default_input() -> Result<Self, Error> {
-        Self::from_id(Self::default_input_device_id()?)
+    pub fn default_input() -> Result<AudioInputDevice, Error> {
+        let input = Self::from_id(Self::default_input_device_id()?)?;
+
+        Ok(unsafe { input.as_input().unwrap_unchecked() })
     }
 
     pub fn default_output() -> Result<AudioOutputDevice, Error> {
@@ -56,6 +59,14 @@ impl AudioDevice {
         }
 
         Some(AudioOutputDevice(self))
+    }
+
+    pub fn as_input(self) -> Option<AudioInputDevice> {
+        if !self.is_input() {
+            return None;
+        }
+
+        Some(AudioInputDevice(self))
     }
 
     pub const fn id(&self) -> AudioDeviceID {
