@@ -20,6 +20,8 @@ AudioObjectPropertyAddress propertyAddress = {
 };
 ```
 
+The library doesn't expose every possible property selector, but if you need something, it's easy to add.
+
 Features:
 - [x] Get the default input/output device
     - [x] Get/set volume
