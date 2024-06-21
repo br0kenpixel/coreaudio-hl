@@ -9,7 +9,7 @@ pub struct AudioObjPropAddress {
 }
 
 impl AudioObjPropAddress {
-    pub fn new(select: PropertySelector, scope: PropertyScope) -> Self {
+    pub const fn new(select: PropertySelector, scope: PropertyScope) -> Self {
         Self::new_with_element(select, scope, 0)
     }
 

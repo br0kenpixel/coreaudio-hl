@@ -29,9 +29,9 @@ Features:
     - [x] Get/set mute state
     - [x] Get/set name
     - [x] Get channels
-- [ ] Attach callbacks for events
+- [-] Attach callbacks for events
     - [ ] Volume change
-    - [ ] Default input/output device change
+    - [x] Default input/output device change
 
 Example:
 ```rust

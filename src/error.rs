@@ -18,6 +18,8 @@ pub enum Error {
     NotOutput,
     #[error("Unable to determine device type of device {0}")]
     UnknownDeviceType(AudioDeviceID),
+    #[error("Callback registration failed")]
+    CallbackRegister,
 }
 
 impl From<i32> for Error {
