@@ -29,7 +29,7 @@ Features:
     - [x] Get/set mute state
     - [x] Get/set name
     - [x] Get channels
-- [-] Attach callbacks for events
+- [X] Attach callbacks for events
     - [ ] Volume change
     - [x] Default input/output device change
 
