@@ -1,5 +1,5 @@
 use coreaudio_hl::{
-    devices::AudioDevice,
+    devices::AudioOutputDevice,
     events::output_changed::{register, unregister},
 };
 use std::{thread::sleep, time::Duration};
@@ -14,6 +14,6 @@ fn main() {
     println!("Callback unregistered!");
 }
 
-fn my_callback(device: AudioDevice) {
+fn my_callback(device: AudioOutputDevice) {
     dbg!(device);
 }

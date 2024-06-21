@@ -1,5 +1,8 @@
 use crate::{
-    aopa::AudioObjPropAddress, devices::AudioDevice, error::Error, mscope::PropertyScope,
+    aopa::AudioObjPropAddress,
+    devices::{AudioDevice, AudioOutputDevice},
+    error::Error,
+    mscope::PropertyScope,
     mselector::PropertySelector,
 };
 use coreaudio_sys::{
@@ -8,7 +11,7 @@ use coreaudio_sys::{
 };
 use std::{ffi::c_void, ptr::null_mut, sync::RwLock};
 
-type Callback = fn(AudioDevice);
+type Callback = fn(AudioOutputDevice);
 const ADDRESS: AudioObjPropAddress = AudioObjPropAddress::new(
     PropertySelector::HW_DEFAULT_OUTPUT_DEV,
     PropertyScope::OBJ_GLOBAL,
@@ -56,12 +59,12 @@ pub fn unregister() -> Result<(), Error> {
 }
 
 unsafe extern "C" fn callback_wrapper(
-    in_obj_id: AudioObjectID,
+    _in_obj_id: AudioObjectID,
     _in_number_addresses: UInt32,
     _in_addresses: *const AudioObjectPropertyAddress,
     _in_client_data: *mut c_void,
 ) -> OSStatus {
-    let device = AudioDevice::from_id(in_obj_id).unwrap();
+    let device = AudioDevice::default_output().unwrap();
     let hl_clbk = unsafe { CALLBACK.read().unwrap_unchecked().unwrap_unchecked() };
 
     hl_clbk(device);
