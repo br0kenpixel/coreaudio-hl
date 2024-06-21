@@ -6,7 +6,7 @@ use crate::{
     mselector::PropertySelector,
 };
 use coreaudio_sys::{kAudioObjectSystemObject, AudioDeviceID};
-use input::AudioInputDevice;
+pub use input::AudioInputDevice;
 pub use output::AudioOutputDevice;
 use std::mem::size_of;
 
