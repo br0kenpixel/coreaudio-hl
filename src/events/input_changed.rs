@@ -6,14 +6,14 @@ use coreaudio_sys::{
     kAudioObjectSystemObject, AudioObjectAddPropertyListener, AudioObjectID,
     AudioObjectPropertyAddress, AudioObjectRemovePropertyListener, OSStatus, UInt32,
 };
-use std::{ffi::c_void, ptr::null_mut, sync::OnceLock};
+use std::{ffi::c_void, ptr::null_mut, sync::RwLock};
 
 type Callback = fn(AudioDevice);
 const ADDRESS: AudioObjPropAddress = AudioObjPropAddress::new(
     PropertySelector::HW_DEFAULT_INPUT_DEV,
     PropertyScope::OBJ_GLOBAL,
 );
-static CALLBACK: OnceLock<Option<Callback>> = OnceLock::new();
+static CALLBACK: RwLock<Option<Callback>> = RwLock::new(None);
 
 pub fn register(callback: Callback) -> Result<(), Error> {
     let status = unsafe {
@@ -29,9 +29,8 @@ pub fn register(callback: Callback) -> Result<(), Error> {
         return Err(status.into());
     }
 
-    CALLBACK
-        .set(Some(callback))
-        .map_err(|_| Error::CallbackRegister)?;
+    let mut slot = CALLBACK.write().unwrap();
+    slot.replace(callback);
 
     Ok(())
 }
@@ -50,7 +49,9 @@ pub fn unregister() -> Result<(), Error> {
         return Err(status.into());
     }
 
-    CALLBACK.set(None).map_err(|_| Error::CallbackRegister)?;
+    let mut slot = CALLBACK.write().unwrap();
+    slot.take();
+
     Ok(())
 }
 
@@ -61,7 +62,7 @@ unsafe extern "C" fn callback_wrapper(
     _in_client_data: *mut c_void,
 ) -> OSStatus {
     let device = AudioDevice::from_id(in_obj_id).unwrap();
-    let hl_clbk = unsafe { CALLBACK.get().unwrap_unchecked().unwrap_unchecked() };
+    let hl_clbk = unsafe { CALLBACK.read().unwrap_unchecked().unwrap_unchecked() };
 
     hl_clbk(device);
 
