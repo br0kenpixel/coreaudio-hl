@@ -1,5 +1,5 @@
 use coreaudio_sys::{AudioDeviceID, OSStatus};
-use std::{num::TryFromIntError, str::Utf8Error};
+use std::{ffi::FromBytesUntilNulError, num::TryFromIntError, str::Utf8Error};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -12,6 +12,8 @@ pub enum Error {
     InvalidVolume(f32),
     #[error("Failed to convert integer values: {0}")]
     IntConversion(#[from] TryFromIntError),
+    #[error("Failed to create a C string")]
+    CStringMake(#[from] FromBytesUntilNulError),
     #[error("Unexpected parameter")]
     UnexpectedParam,
     #[error("Device ID links to an input device")]

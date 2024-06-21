@@ -9,7 +9,7 @@ use coreaudio_sys::{
     AudioObjectHasProperty, AudioObjectSetPropertyData, AudioStreamID, UInt32,
 };
 use std::{
-    ffi::c_void,
+    ffi::{c_void, CStr},
     mem::size_of,
     ptr::{self, addr_of, null},
 };
@@ -122,7 +122,8 @@ pub fn get_device_name(id: AudioDeviceID, scope: PropertyScope) -> Result<String
         return Err(Error::Raw(status));
     }
 
-    let name = std::str::from_utf8(&name_buf)?;
+    let name = CStr::from_bytes_until_nul(&name_buf)?;
+    let name = name.to_str()?;
 
     Ok(name.into())
 }
